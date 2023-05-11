@@ -12,3 +12,4 @@ cd ~/Aminnn/Hi-C
 HiCPro_step1_hic-test_mm10.sh
 HiCPro_step2_hic-test_mm10.sh
 
+#step1 is alignment and results will be saved in a folder called bowtie2_results, step 2 is main analysis and will be saved in hic_results
