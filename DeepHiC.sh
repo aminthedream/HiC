@@ -1,20 +1,26 @@
-#After installing DeepHiC which needs a separate environment with conda we should have some python scripts which have to run separately.
-conda create --name hic python=3.9.12 pytorch torchvision numpy scipy pandas scikit-learn matplotlib tqdm -c pytorch
-conda activate hic
-conda install -c conda-forge visdom
-#this also has to be run, not sure why!
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/miniconda3/lib
-#first things first, there is a file called all_parser.py and root directory will be set in this file
-#all files must be in same folder, for example model folder has to be in the folder that the prediction code is submitted
-python hicpro2deephic.py
-#mm10 or hg38 folders will be created and also a mat folder inside of them which inludes matrix files.
+#!/bin/bash
 
-#2. 
-python ~/DeepHiC/data_generate.py -hr 100000 -lr 100000 -lrc 10 -s mouse -chunk 2 -stride 100 -bound 205 -scale 1 -c path/to/mat/folder/in/step1/folder_100000
+# Define sample name, genome assembly, and resolution
+SAMP="$1"
+RGA="$2"
+RES="$3" 
+
+# Define the directory containing the sample folders
+SAMPLE_DIR="./"
 
 
+# Run hicpro2deephic.py for the current sample, this convert hic-pro output to .npz in order to be used in Python
+python ~/DeepHiC/hicpro2deephic.py \
+--bed "${SAMPLE_DIR}/${SAMP}/HiC_Pro_results/hic_results/matrix/${SAMP}/raw/${RES}/${SAMP}_${RES}_abs.bed" \
+--mat "${SAMPLE_DIR}/${SAMP}/HiC_Pro_results/hic_results/matrix/${SAMP}/raw/${RES}/${SAMP}_${RES}.matrix" \
+-r "${RES}" \
+-o "${SAMPLE_DIR}/${SAMP}/DeepHiC/${RGA}/mat/${SAMP}_${RES}"
 
-#3.
-python ~/DeepHiC/data_predict.py -lr 100000 -ckpt /path/to/folder/that/comes/with/DeepHiC/save/deephic_raw_16.pth -c folder_100000/
+# Move to the output directory of the previous step
+cd "${SAMPLE_DIR}/${SAMP}/DeepHiC/${RGA}"
 
+# Run data_generate.py on the current sample, this will be saved in data folder which is temporary file and can be removed
+python ~/DeepHiC/data_generate.py -hr "${RES}" -lr "${RES}" -lrc 100 -s human -chunk 40 -stride 40 -bound 9999 -scale 1 -c "${SAMP}_${RES}"
 
+# Run data_predict.py on the current sample for predicted samples
+python ~/DeepHiC/data_predict.py -lr "${RES}" -ckpt /cluster/projects/epigenomics/Jakob/HiC_tools/DeepHiC/save/deephic_raw_16.pth -c "${SAMP}_${RES}"
